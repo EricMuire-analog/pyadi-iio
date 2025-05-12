@@ -42,23 +42,16 @@ from adi import ad4080, ad9508, adf4350, one_bit_adc_dac
 
 # Optionally pass URI as command line argument,
 # else use default ip:analog.local
-'''
+
 if len(sys.argv) < 3:
     print("Usage: script.py <my_uri> <Fsamp> [FiltMode] [DecRate]")
     sys.exit(1)
-
 
 # Read input arguments
 my_uri = sys.argv[1]  # First argument: URI
 Fsamp = float(sys.argv[2])  # Second argument: Sampling Frequency (converted to float)
 FiltMode = sys.argv[3]
 DecRate = sys.argv[4]
-'''
-
-my_uri = "ip:analog.local"  # Default URI
-Fsamp = 40_000_000  # Default Sampling Frequency
-FiltMode = "dec2"  # Default Filter Mode
-DecRate = 2  # Default Decimation Rate
 
 my_adc = ad4080(uri=my_uri)
 my_divider = ad9508(uri=my_uri, device_name="ad9508")
@@ -84,30 +77,80 @@ adf4350_clk = int(Fsamp * 10_000_000)  # Multiply by 10 million
 ## Disable the AD9508 outputs
 my_one_bit_adc_dac.gpio_sync_n = 1
 
+my_divider.reg_write(0x2B, 0x16)
 
-adf4350_clk = 400_000_000 #here
-adf4350_clk = adf4350_clk * 1
-print(f"ADF4350 PLL Frequency set to: {adf4350_clk}")
-my_pll.frequency_altvolt0 = adf4350_clk
-print("Set for: 40MSPS to 20MSPS Range")
-my_divider.channel[2] = adf4350_clk / 10
-my_divider.channel[3] = adf4350_clk / 1
+if 200_000_000 <= adf4350_clk <= 430_000_000:
+    adf4350_clk = adf4350_clk * 1
+    print(f"ADF4350 PLL Frequency set to: {adf4350_clk}")
+    my_pll.frequency_altvolt0 = adf4350_clk
+    print("Set for: 40MSPS to 20MSPS Range")
+    my_divider.channel[2] = adf4350_clk / 10
+    my_divider.channel[3] = adf4350_clk / 1
 
-my_adc.reg_write(0x16, 0x71)
+    my_divider.reg_write(0x2B, 0x26)
+    my_adc.reg_write(0x16, 0x51)
 
-my_divider.reg_write(0x2B, 0x26)
-my_divider.reg_write(0x1F, 0x26)
+elif 100_000_000 <= adf4350_clk < 200_000_000:
+    adf4350_clk = adf4350_clk * 2
+    print(f"ADF4350 PLL Frequency set to: {adf4350_clk}")
+    my_pll.frequency_altvolt0 = adf4350_clk
+    print("Set for: 40MSPS to 20MSPS Range")
+    my_divider.channel[2] = adf4350_clk / 20
+    my_divider.channel[3] = adf4350_clk / 2
+
+    my_adc.reg_write(0x16, 0x21)
+
+elif 50_000_000 <= adf4350_clk < 100_000_000:
+    adf4350_clk = adf4350_clk * 4
+    print(f"ADF4350 PLL Frequency set to: {adf4350_clk}")
+    my_pll.frequency_altvolt0 = adf4350_clk
+    print("Set for: 40MSPS to 20MSPS Range")
+    my_divider.channel[2] = adf4350_clk / 40
+    my_divider.channel[3] = adf4350_clk / 4
+
+    my_adc.reg_write(0x16, 0x21)
+
+elif 25_000_000 <= adf4350_clk < 50_000_000:
+    adf4350_clk = adf4350_clk * 8
+    print(f"ADF4350 PLL Frequency set to: {adf4350_clk}")
+    my_pll.frequency_altvolt0 = adf4350_clk
+    print("Set for: 40MSPS to 20MSPS Range")
+    my_divider.channel[2] = adf4350_clk / 80
+    my_divider.channel[3] = adf4350_clk / 8
+
+    my_adc.reg_write(0x16, 0x21)
+
+elif 10_000_000 <= adf4350_clk < 25_000_000:
+    adf4350_clk = adf4350_clk * 16
+    print(f"ADF4350 PLL Frequency set to: {adf4350_clk}")
+    my_pll.frequency_altvolt0 = adf4350_clk
+    print("Set for: 40MSPS to 20MSPS Range")
+    my_divider.channel[2] = adf4350_clk / 160
+    my_divider.channel[3] = adf4350_clk / 16
+
+    my_adc.reg_write(0x16, 0x21)
+
+else:
+    adf4350_clk = 400_000_000
+    adf4350_clk = adf4350_clk * 1
+    print(f"ADF4350 PLL Frequency set to: {adf4350_clk}")
+    my_pll.frequency_altvolt0 = adf4350_clk
+    print("Set for: 40MSPS to 20MSPS Range")
+    my_divider.channel[2] = adf4350_clk / 10
+    my_divider.channel[3] = adf4350_clk / 1
+
+    my_adc.reg_write(0x16, 0x41)
     
 my_one_bit_adc_dac.gpio_sync_n = 0
 
-my_adc.filter_sel = "disabled"
+# my_adc.filter_sel = "disabled"
 time.sleep(0.25)
 my_adc.lvds_sync = "enable"
 time.sleep(0.25)
-my_adc.filter_sel = FiltMode #step into and see where this is being set
-time.sleep(0.25)
-my_adc.sinc_dec_rate = DecRate
-time.sleep(0.25)
+# my_adc.filter_sel = FiltMode
+# time.sleep(0.25)
+# my_adc.sinc_dec_rate = DecRate
+# time.sleep(0.25)
 
 plt.clf()
 sleep(0.5)
